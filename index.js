@@ -25,6 +25,19 @@ let persons = [
     }
 ]
 
+const generateId = () => {
+    const maxId = persons.length > 0
+    ? Math.max(...persons.map(n => Number(n.id)))
+    : 0
+    return maxId
+}
+
+const generateRandomId = () => {
+    const minCeiled = Math.ceil(min);
+  const maxFloored = Math.floor(max);
+  return Math.floor(Math.random() * (maxFloored - minCeiled) + minCeiled); 
+}
+
 app.get('/api/persons', (request, response) => {
     response.json(persons)
 })
@@ -40,13 +53,6 @@ app.get('/api/persons/:id', (request, response) => {
     }
 })
 
-const generateId = () => {
-    const maxId = persons.length > 0
-    ? Math.max(...persons.map(n => Number(n.id)))
-    : 0
-    return maxId
-}
-
 app.get('/info', (request, response) => {
     const id = String(generateId())
     const d = new Date()
@@ -56,9 +62,39 @@ app.get('/info', (request, response) => {
         day: 'numeric'
     })
     const date = dateFormatter.format(d)
+
     let time = d.toLocaleTimeString()
     response.send(`<p>This server has ${id} people. </p> 
         <p> ${date} ${time} </p>`)
+})
+
+
+app.post('/api/persons', (request, response) => {
+    const personContent = request.body
+
+    if (!personContent.name) {
+        return response.status(400).json({ 
+          error: 'content missing' 
+        })
+    }
+
+    const id = Number(generateRandomId(10, 200)) + 1
+
+    const person = {
+        id: id,
+        name: personContent.name,
+        number: personContent.number,
+    }
+
+    persons = persons.concat(person)
+    response.json(person)
+})
+
+app.delete('/api/persons/:id', (request, response) => {
+    const id = Number(request.params.id)
+    persons = persons.filter(person => person.id !== id)
+
+    response.status(204).end()
 })
 
 const PORT = 3001
