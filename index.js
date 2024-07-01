@@ -2,6 +2,8 @@ const http = require('http')
 const express = require('express')
 const app = express()
 
+app.use(express.json())
+
 let persons = [
     { 
       "id": "1",
@@ -32,7 +34,7 @@ const generateId = () => {
     return maxId
 }
 
-const generateRandomId = () => {
+const generateRandomId = (min, max) => {
     const minCeiled = Math.ceil(min);
   const maxFloored = Math.floor(max);
   return Math.floor(Math.random() * (maxFloored - minCeiled) + minCeiled); 
@@ -78,7 +80,14 @@ app.post('/api/persons', (request, response) => {
         })
     }
 
-    const id = Number(generateRandomId(10, 200)) + 1
+    const existingPerson = persons.find(person => person.name === personContent.name)
+    if (existingPerson){
+        return response.status(400).json({
+            error: "person already exists in phonebook"
+        })
+    }
+
+    const id = personContent.id || generateRandomId(10, 200) + 1;
 
     const person = {
         id: id,
