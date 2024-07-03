@@ -2,8 +2,11 @@ const http = require('http')
 const express = require('express')
 const morgan = require('morgan')
 const cors = require('cors')
-
+const Person = require('./models/person')
 const app = express()
+
+
+require('dotenv').config()
 app.use(cors())
 app.use(express.json())
 app.use(express.static('dist'))
@@ -12,41 +15,28 @@ morgan.token('body', (request) => JSON.stringify(request.body))
 
 app.use(morgan(':method :url :status :res[content-length] - :response-time ms :body'))
 
-let persons = [
-    { 
-      "id": "1",
-      "name": "Arto Hellas", 
-      "number": "040-123456"
-    },
-    { 
-      "id": "2",
-      "name": "Ada Lovelace", 
-      "number": "39-44-5323523"
-    },
-    { 
-      "id": "3",
-      "name": "Dan Abramov", 
-      "number": "12-43-234345"
-    },
-    { 
-      "id": "4",
-      "name": "Mary Poppendieck", 
-      "number": "39-23-6423122"
-    }
-]
-
-const generateId = () => {
-    const maxId = persons.length > 0
-    ? Math.max(...persons.map(n => Number(n.id)))
-    : 0
-    return maxId
+const requestLogger = (request, response, next) => {
+    console.log('Method:', request.method)
+    console.log('Path:  ', request.path)
+    console.log('Body:  ', request.body)
+    console.log('---')
+    next()
 }
+app.use(requestLogger)
 
-const generateRandomId = (min, max) => {
-    const minCeiled = Math.ceil(min);
-  const maxFloored = Math.floor(max);
-  return Math.floor(Math.random() * (maxFloored - minCeiled) + minCeiled); 
-}
+
+// const generateId = () => {
+//     const maxId = persons.length > 0
+//     ? Math.max(...persons.map(n => Number(n.id)))
+//     : 0
+//     return maxId
+// }
+
+// const generateRandomId = (min, max) => {
+//     const minCeiled = Math.ceil(min);
+//   const maxFloored = Math.floor(max);
+//   return Math.floor(Math.random() * (maxFloored - minCeiled) + minCeiled); 
+// }
 
 app.get('/api/persons', (request, response) => {
     response.json(persons)
@@ -95,26 +85,25 @@ app.post('/api/persons', (request, response) => {
         })
     }
 
-    const id = personContent.id || generateRandomId(10, 200) + 1;
-
     const person = {
-        id: id,
+        id: personContent.id,
         name: personContent.name,
         number: personContent.number,
     }
 
-    persons = persons.concat(person)
-    response.json(person)
+    person.save().then(savedPerson => {
+        response.json(savedPerson)
+    })
 })
 
 app.delete('/api/persons/:id', (request, response) => {
-    const id = Number(request.params.id)
-    persons = persons.filter(person => person.id !== id)
-
+    Person.findById(request.params.id).then(person => {
+        response.json(person)
+    })
     response.status(204).end()
 })
 
-const PORT = process.env.PORT || 3001
+const PORT = process.env.PORT
 app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`)
 })
